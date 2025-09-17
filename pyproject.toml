@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "selenium-browserkit"
-version = "0.2.3"
+version = "0.2.4"
 description = "A toolkit for Selenium automation with multi-profile support"
 readme = "README.md"
 authors = [
@@ -15,7 +15,7 @@ keywords = ["selenium", "automation", "browser", "profile", "toolkit"]
 requires-python = ">=3.8"
 
 dependencies = [
-    "selenium>=4.36,<5.0",
+    "selenium>=4.33,<5.0",
     "requests>=2.32,<3.0",
     "screeninfo>=0.8,<1.0",
     "pillow>=11.3,<12.0",
