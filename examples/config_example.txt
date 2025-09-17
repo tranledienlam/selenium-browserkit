@@ -1,0 +1,25 @@
+# Đổi tên file config_example.txt thành config.txt để sử dụng
+
+# Số lượng profiles chạy đồng thời mỗi lượt.
+## Ví dụ: chạy 100 profile, mỗi lần chạy 4 profiles (mặc định)
+MAX_PROFLIES=4
+
+# Cấu hình đường dẫn lưu profile <PATH>
+## Để trống, user_data mặc định cùng thư mục tool.
+## Thay đổi nơi khác, ví dụ: E:\profiles\discord
+USER_DATA_DIR=
+
+# Thông tin Tele Bot <USER_ID>|<BOT_TOKEN>|<ENDPOINT_URL (tùy chọn)>
+## Có thể thêm nhiều dòng TELE_BOT khác nhau. Tool sẽ ưu tiên tele từ trên xuống.
+TELE_BOT=1234567890|1235647890:AAFce0bukTPYase66cr_PH_ahBaCdU36xyc
+TELE_BOT=
+
+# Thông tin AI Bot <AI_BOT_TOKEN>
+## Có thể thêm nhiều dòng AI_BOT khác nhau. Tool sẽ lấy token theo ưu tiên từ trên xuống.
+AI_BOT=AIzjSyAxmkXl_3aixsTcRAJSabUeLmzsSz0ovAg
+AI_BOT=
+
+# Đường dẫn môi trường chạy Python <PATH>
+## Để trống để sử dụng Python hệ thống
+## Hoặc chỉ định đường dẫn môi trường ảo: E:\venv\Scripts\python.exe
+PYTHON_PATH=
