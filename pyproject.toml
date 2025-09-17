@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "selenium-browserkit"
-version = "0.2.2"
+version = "0.2.3"
 description = "A toolkit for Selenium automation with multi-profile support"
 readme = "README.md"
 authors = [
@@ -30,5 +30,5 @@ include = ["selenium_browserkit*"]
 exclude = ["user_data*", "extensions*"]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/selenium_toolkit"
-Issues = "https://github.com/yourusername/selenium_toolkit/issues"
+Homepage = "https://github.com/tranledienlam/selenium-browserkit"
+Issues = "https://github.com/tranledienlam/selenium-browserkit/issues"

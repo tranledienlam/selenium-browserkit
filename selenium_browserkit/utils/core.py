@@ -4,6 +4,7 @@ import random
 import inspect
 import re
 import os
+import sys
 import pathlib
 
 from pathlib import Path
@@ -11,7 +12,7 @@ from typing import List, Optional
 
 import requests
 
-DIR_PATH = Path.cwd()
+DIR_PATH = Path(sys.argv[0]).resolve().parent
 
 class Utility:
 

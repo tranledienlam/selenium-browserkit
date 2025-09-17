@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.2-orange.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-0.2.3-orange.svg)](pyproject.toml)
 
 **Selenium BrowserKit** là một bộ công cụ tự động hóa mạnh mẽ với Selenium, được thiết kế để quản lý nhiều profile trình duyệt, chạy song song, và tích hợp các tính năng AI và Telegram. Phù hợp cho việc xây dựng bot, tool automation, hoặc quản lý nhiều tài khoản cùng lúc.
 
@@ -26,7 +26,7 @@
 
 ### Cài đặt từ PyPI
 ```bash
-pip install selenium-browserkit==0.2.2
+pip install selenium-browserkit==0.2.3
 ```
 
 ### Cài đặt từ source
