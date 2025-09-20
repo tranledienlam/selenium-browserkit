@@ -153,6 +153,10 @@ class Node:
 
         return True
 
+    def get_driver(self):
+        """Trả về đối tượng Selenium WebDriver gốc để sử dụng trực tiếp"""
+        return self._driver
+
     def log(self, message: str = 'message chưa có mô tả', show_log: bool = True):
         '''
         Ghi và hiển thị thông báo nhật ký (log)
@@ -999,13 +1003,13 @@ class Node:
         self.log(f"❌ Không tìm thấy tab có {type}: {value}.")
         return False
     
-    def scroll_to(self, element: WebElement, wait: float|None = None):
+    def scroll_to_element(self, element: WebElement, wait: float|None = None):
         '''
         Phương thức cuộn đến phần tử cụ thể được chỉ định.
 
         Args:
-            element (WebElement, optional): Nếu có, tìm phần tử con bên trong phần tử này.
-            wait (float, optional): Thời gian chờ trước khi điều hướng, mặc định là giá trị của `self.wait = 3`.
+            element (WebElement): Phần tử muốn cuộn tới.
+            wait (float, optional): Thời gian chờ trước khi cuộn, mặc định là giá trị của `self.wait`.
 
         Returns:
             bool: True, cuộn thành công. False khi gặp lỗi
@@ -1018,16 +1022,56 @@ class Node:
         Utility.wait_time(wait)
         try:
             self._driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
-            self.log(f'Cuộn thành công')
+            self.log(f'Cuộn đến {element} thành công')
             return True
         
         except NoSuchWindowException:
             self.log(f'Không thể cuộn. Cửa sổ đã đóng')
         except Exception as e:
-            self.log(f'Lỗi - không xác định khi cuộn: {e}')
+            self.log(f'❌ Lỗi - không xác định khi cuộn: {e}')
             
         return False
-    
+
+    def scroll_to_position(self, position: str = "end", wait: float | None = None) -> bool:
+        """
+        Phương thức cuộn đến vị trí của trang.
+
+        Args:
+            position (str): Vị trí muốn cuộn đến. 
+                            Có thể là "top", "middle", "end".
+            wait (float, optional): Thời gian chờ trước khi cuộn, mặc định là giá trị của `self.wait
+
+        Returns:
+            bool: True nếu cuộn thành công, False nếu lỗi.
+
+        Mô tả:
+            Phương thức sẽ nhận vào 1 element cụ thể, sau đó dùng driver.execute_script() để thực thi script
+        """
+        wait = self._get_wait(wait)
+        Utility.wait_time(wait)
+        try:
+            if position == "top":
+                self._driver.execute_script("window.scrollTo(0, 0);")
+            elif position == "middle":
+                self._driver.execute_script(
+                    "window.scrollTo(0, document.body.scrollHeight/2);"
+                )
+            elif position == "end":
+                self._driver.execute_script(
+                    "window.scrollTo(0, document.body.scrollHeight);"
+                )
+            else:
+                self.log(f"Vị trí {position} không hợp lệ (chỉ hỗ trợ top/middle/end)")
+                return False
+
+            self.log(f"Cuộn đến vị trí {position} thành công")
+            return True
+        except NoSuchWindowException:
+            self.log("Không thể cuộn. Cửa sổ đã đóng")
+        except Exception as e:
+            self.log(f"Lỗi khi cuộn trang: {e}")
+        return False
+
     def ask_ai(self, prompt: str, is_image: bool = True, wait: float|None = None) -> str|None:
         '''
         Gửi prompt và hình ảnh (nếu có) đến AI để phân tích và nhận kết quả.

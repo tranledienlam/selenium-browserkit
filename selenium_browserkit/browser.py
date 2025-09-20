@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import glob
 import shutil
@@ -73,7 +74,8 @@ class BrowserManager:                                                           
         self._ai_bot = None
         self._matrix: list[list[str | None]] = [[None]]
         self._extensions = []
-
+        self._proxies_info = []
+        self._live_proxies_parts = []
         # lấy kích thước màn hình
         monitors = get_monitors()
         if len(monitors) > 1:
@@ -137,7 +139,7 @@ class BrowserManager:                                                           
         Utility._logger(profile_name, message)
 
     def _get_user_data_dir(self):
-        dir_path = Utility._read_config('USER_DATA_DIR')
+        dir_path = Utility.read_config('USER_DATA_DIR')
         if dir_path and Path(dir_path[0]).exists():
             return Path(dir_path[0])
         else:
@@ -320,22 +322,33 @@ class BrowserManager:                                                           
         if self.config.headless:
             chrome_options.add_argument("--headless=new") # ẩn UI khi đang chạy
         
-        # add proxy
+        # add proxy for profile
+        live_proxy_parts =  random.choice(self._live_proxies_parts) if self._live_proxies_parts else None
+            
         if proxy_info:
             proxy_parts = Utility._parse_proxy(proxy_info)
             if proxy_parts:
                 check_proxy = Utility._is_proxy_working(proxy_parts)
                 if check_proxy:
-                    if proxy_parts['user'] and proxy_parts['pass']:
-                        proxy_extension_path = self._create_extension_proxy(profile_name, proxy_parts)
-                        if proxy_extension_path:
-                            chrome_options.add_extension(proxy_extension_path)
-                    else:
-                        chrome_options.add_argument(f'--proxy-server=http://{proxy_parts["ip"]}:{proxy_parts["port"]}')
+                    live_proxy_parts = proxy_parts
                 else:
-                    self._log(profile_name, f'Proxy {proxy_info} không hoạt động!')
+                    if live_proxy_parts:
+                        self._log(profile_name, f'{proxy_info} không hoạt động! Dùng proxy dự phòng')
+                    else:
+                        self._log(profile_name, f'{proxy_info} không hoạt động! Không dùng proxy')
             else:
-                self._log(profile_name, f'Thông tin proxy: {proxy_info} sai định dạng!')
+                if live_proxy_parts:
+                    self._log(profile_name, f'{proxy_info} sai định dạng! Dùng proxy dự phòng')
+                else:
+                    self._log(profile_name, f'{proxy_info} sai định dạng! Không dùng proxy')
+
+        if live_proxy_parts:
+            if live_proxy_parts.get('user') and live_proxy_parts.get('pass'):
+                proxy_extension_path = self._create_extension_proxy(profile_name, live_proxy_parts)
+                if proxy_extension_path:
+                    chrome_options.add_extension(proxy_extension_path)
+            else:
+                chrome_options.add_argument(f'--proxy-server=http://{live_proxy_parts["ip"]}:{live_proxy_parts["port"]}')
 
         # add extensions
         for ext in self._extensions:
@@ -347,19 +360,93 @@ class BrowserManager:                                                           
 
         return driver
 
-    def add_extensions(self, *args: str):
+    def add_extensions(self, *args: str | list[str]):
         '''
         Thêm danh sách tiện ích mở rộng (extensions) cần load.
 
         Args:
-            *args (str): Danh sách file hoặc pattern (vd: 'ext1.crx', 'ext2*.crx').
+            *args (str | list[str]): 
+                - Một hoặc nhiều tên file / pattern, ví dụ:
+                    add_extensions("ext1.crx", "ext2*.crx")
+                - Hoặc một list chứa tên file / pattern, ví dụ:
+                    add_extensions(["ext1.crx", "ext2*.crx"])
 
         Ghi chú:
-            - Chỉ lưu tên/file pattern, chưa kiểm tra tồn tại.
+            - Chỉ lưu tên/file pattern, chưa kiểm tra sự tồn tại thực tế.
             - Thư mục extensions mặc định: self._extensions_dir.
-        '''
-        self._extensions = list(args)
 
+        Returns:
+            list[str]: Danh sách extensions đã chuẩn hoá và loại bỏ trùng lặp.
+        '''
+        extensions: list[str] = []
+
+        # Gom tất cả argument lại thành một list phẳng
+        for arg in args:
+            if isinstance(arg, (list, tuple, set)):
+                extensions.extend(arg)
+            else:
+                extensions.append(arg)
+
+        # Loại bỏ None, rỗng, strip() khoảng trắng
+        extensions = [e.strip() for e in extensions if e and isinstance(e, str)]
+
+        # Loại bỏ trùng lặp, giữ nguyên thứ tự xuất hiện đầu tiên
+        seen = set()
+        unique_exts = []
+        for e in extensions:
+            if e not in seen:
+                unique_exts.append(e)
+                seen.add(e)
+
+        self._extensions = unique_exts
+        return unique_exts
+
+    def add_proxies(self, *args: str | list[str]):
+        '''
+        Thiết lập danh sách proxy cho toàn bộ phiên duyệt trình.
+
+        Args:
+            *args (str | list[str]): 
+                - Một hoặc nhiều chuỗi proxy, ví dụ:
+                    add_proxies("ip1:port1", "ip2:port2")
+                - Hoặc một list chứa chuỗi proxy, ví dụ:
+                    add_proxies(["ip1:port1", "ip2:port2"])
+            
+            Hỗ trợ các định dạng:
+                - "ip:port"
+                - "ip:port@username:password"
+                - "username:password@ip:port"
+
+        Ghi chú:
+            - Proxy chỉ được lưu vào `self._proxies_info`.
+            - Proxy sẽ được kiểm tra tính hợp lệ trước khi áp dụng khi khởi tạo trình duyệt.
+            - Nếu profile đã có cấu hình proxy riêng thì danh sách này sẽ bị bỏ qua.
+
+        Returns:
+            list[str]: Danh sách proxy đã chuẩn hoá và loại bỏ trùng lặp.
+        '''
+        proxies: list[str] = []
+
+        # Gom tất cả argument lại thành một list phẳng
+        for arg in args:
+            if isinstance(arg, (list, tuple, set)):
+                proxies.extend(arg)
+            else:
+                proxies.append(arg)
+
+        # Loại bỏ None, rỗng, strip() khoảng trắng
+        proxies = [p.strip() for p in proxies if p and isinstance(p, str)]
+
+        # Loại bỏ trùng lặp, giữ nguyên thứ tự xuất hiện đầu tiên
+        seen = set()
+        unique_proxies = []
+        for p in proxies:
+            if p not in seen:
+                unique_proxies.append(p)
+                seen.add(p)
+
+        self._proxies_info = unique_proxies
+        return unique_proxies
 
     def _listen_for_enter(self, profile_name: str):
         """Lắng nghe sự kiện Enter để dừng trình duyệt"""
@@ -452,6 +539,17 @@ class BrowserManager:                                                           
         # check extension
         if self._extensions:
             self._check_extensions()
+
+        # check proxies
+        if not self._proxies_info:
+            self._proxies_info = Utility.read_config('PROXY')
+        if self._proxies_info:
+            print(f'🛠️  Đang kiểm tra proxy...')
+        for proxy_info in self._proxies_info:
+            proxy_parts = Utility._parse_proxy(proxy_info)
+            check_proxy = Utility._is_proxy_working(proxy_parts)
+            if check_proxy:
+                self._live_proxies_parts.append(proxy_parts)
 
         # xử lý file pid nếu tồn tại
         pid_files = list(self._user_data_dir.glob("*.pid"))
@@ -668,7 +766,7 @@ class BrowserManager:                                                           
 
         # Đầu vào trước khi chạy tool
 
-        max_concurrent_profiles = Utility._read_config('MAX_PROFLIES')
+        max_concurrent_profiles = Utility.read_config('MAX_PROFLIES')
         try:
             if max_concurrent_profiles:
                 max_concurrent_profiles = int(max_concurrent_profiles[0])

@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.2.4-orange.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-0.3.0-orange.svg)](pyproject.toml)
 
 **Selenium BrowserKit** là một bộ công cụ tự động hóa mạnh mẽ với Selenium, được thiết kế để quản lý nhiều profile trình duyệt, chạy song song, và tích hợp các tính năng AI và Telegram. Phù hợp cho việc xây dựng bot, tool automation, hoặc quản lý nhiều tài khoản cùng lúc.
 
@@ -26,7 +26,7 @@
 
 ### Cài đặt từ PyPI
 ```bash
-pip install selenium-browserkit==0.2.4
+pip install selenium-browserkit==0.3.0
 ```
 
 ### Cài đặt từ source
@@ -134,6 +134,14 @@ profiles = [
     }
 ]
 
+# Thêm proxy dự phòng (fallback)
+# Nếu profile không có proxy hoặc proxy trong profile bị lỗi
+manager.add_proxies(
+    "38.153.152.244:9594",
+    "38.153.152.244:9594@user:pass",
+    "user:pass@38.153.152.244:9594"
+)
+
 manager.run_menu(profiles=profiles)
 ```
 
@@ -148,13 +156,15 @@ BrowserManager(auto_handler=None, setup_handler=None)
 | Method | Mô tả |
 |--------|-------|
 | `update_config(**kwargs)` | Cập nhật cấu hình |
-| `add_extensions(*extensions)` | Thêm extension Chrome |
+| `add_extensions(*args)` | Thêm extension Chrome |
+| `add_proxies(*args)` | Thêm proxy |
 | `run_menu(profiles)` | Chạy với giao diện menu |
 
 ### Node Class
 
 | Method | Mô tả |
 |--------|-------|
+| `get_driver()` | Trả về đối tượng Selenium WebDriver gốc |
 | `go_to(url, method, wait, timeout)` | Điều hướng đến URL |
 | `find(by, value, parent_element, wait, timeout)` | Tìm element |
 | `find_all(by, value, parent_element, wait, timeout)` | Tìm tất cả elements |
@@ -166,14 +176,15 @@ BrowserManager(auto_handler=None, setup_handler=None)
 | `find_in_shadow(selectors, wait, timeout)` | Tìm element trong shadow DOM |
 | `see_by_text(text, by, parent_element, wait, timeout)` | Tìm element theo text |
 | `take_screenshot()` | Chụp màn hình (trả về bytes) |
-| `snapshot(message, stop)` | Chụp và lưu ảnh hoặc gửi đến Tele (nếu có)|
+| `snapshot(message, stop)` | Chụp và lưu ảnh hoặc gửi đến Tele (nếu có). Nếu `stop=True` thì sẽ dừng luồng code sau khi chụp|
 | `log(message, show_log)` | Ghi log |
 | `new_tab(url, method, wait, timeout)` | Mở tab mới |
 | `switch_tab(value, type, wait, timeout)` | Chuyển tab |
 | `close_tab(value, type, wait, timeout)` | Đóng tab |
 | `reload_tab(wait)` | Reload tab hiện tại |
 | `get_url(wait)` | Lấy URL hiện tại |
-| `scroll_to(element, wait)` | Cuộn đến element |
+| `scroll_to_element(element, wait)` | Cuộn đến element |
+| `scroll_to_position(position, wait)` | Cuộn đến vị trí  "top", "middle", "end" của trang|
 | `wait_for_disappear(by, value, parent_element, wait, timeout)` | Chờ element biến mất |
 | `ask_ai(prompt, is_image, wait)` | Hỏi AI (Gemini) |
 | `execute_chain(actions, message_error)` | Thực hiện chuỗi hành động |
@@ -184,7 +195,6 @@ BrowserManager(auto_handler=None, setup_handler=None)
 def auto(node: Node, profile: dict):
     # Điều hướng
     node.go_to("https://www.saucedemo.com")
-
     
     # Nhập text
     node.find_and_input(By.ID, "user-name", "standard_user")
@@ -203,10 +213,10 @@ def auto(node: Node, profile: dict):
 | Method | Mô tả |
 |--------|-------|
 | `wait_time(second, fix)` | Chờ thời gian (có random) |
-| `timeout(second)` | Tạo hàm kiểm tra timeout |
 | `fake_data(numbers)` | Tạo dữ liệu fake cho test |
 | `read_data(*field_names)` | Đọc dữ liệu từ file data.txt |
-
+| `read_config(keyname)` | Đọc dữ liệu từ file config.txt |
+| `timeout(second)` | Tạo hàm kiểm tra timeout |
 
 #### Ví dụ sử dụng Utility
 
@@ -218,6 +228,9 @@ profiles = Utility.fake_data(5)
 
 # Đọc dữ liệu từ file data.txt
 profiles = Utility.read_data('profile_name', 'email', 'password')
+
+# Đọc dữ liệu từ file config.txt
+proxies = Utility.read_data('PROXY')
 
 # Chờ thời gian (có random ±40%)
 Utility.wait_time(5, fix=False)  # Random 3-7 giây
@@ -271,7 +284,6 @@ AI_BOT=<AI_BOT_TOKEN>
 profile_name|email|password|proxy_info (nếu có)
 test1|user1@example.com|pass1|ip:port@username:password
 test2|user2@example.com|pass2
-...
 ```
 
 ## 🤖 Tích hợp AI và Telegram
@@ -330,6 +342,15 @@ def auto(node: Node, profile: dict):
 4. **AI/Telegram không hoạt động**
    - Kiểm tra API key trong config.txt
    - Kiểm tra format cấu hình TELE_BOT và AI_BOT
+
+## 🆕 Update v0.3.0
+
+Phiên bản **0.3.0** bổ sung và cải thiện các tính năng:
+- `scroll_to(element)` – **Removed** (thay bằng `scroll_to_element(element)`)
+- `scroll_to_element(element)` – Cuộn đến phần tử cụ thể
+- `scroll_to_position(position)` – Cuộn nhanh đến `"top"`, `"middle"`, `"end"` của trang
+- `get_driver()` – Lấy WebDriver gốc để tùy chỉnh nâng cao
+- `add_proxies(*args)` – Thêm danh sách proxy để BrowserManager tự động quản lý
 
 ## 📄 License
 

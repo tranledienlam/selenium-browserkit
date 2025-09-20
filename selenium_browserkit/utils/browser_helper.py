@@ -56,7 +56,7 @@ class TeleHelper:
         Returns:
             bool: True nếu tìm thấy và xác thực được token, ngược lại False.
         """
-        tokens = Utility._read_config('TELE_BOT')
+        tokens = Utility.read_config('TELE_BOT')
         if tokens is not None:
             print(f'🛠️  Đang kiểm tra token Telegram bot...')
             for token in tokens:
@@ -156,7 +156,7 @@ class AIHelper:
         Returns:
             bool: True nếu tìm thấy và xác thực được token, ngược lại False.
         """
-        tokens = Utility._read_config('AI_BOT')
+        tokens = Utility.read_config('AI_BOT')
         if tokens is not None:
             print(f'🛠️  Đang kiểm tra token AI bot...')
             for token in tokens:

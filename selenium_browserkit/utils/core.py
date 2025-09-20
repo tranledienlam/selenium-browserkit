@@ -266,14 +266,14 @@ class Utility:
         return profiles
     
     @staticmethod
-    def _read_config(keyname: str) -> Optional[List]:
+    def read_config(keyname: str) -> Optional[List]:
         """
         Lấy thông tin cấu hình từ tệp `config.txt`.
 
-        Tệp cấu hình `config.txt` phải nằm trong cùng thư mục với tệp mã nguồn. 
+        File `config.txt` phải nằm trong cùng thư mục với tệp mã nguồn. 
 
         Args:
-            keyname (str): Tên định danh, ví dụ: 'USER_DATA_DIR', 'TELE_BOT', 'AI_BOT', 'MAX_PROFLIES
+            keyname (str): Tên định danh trong file `config.txt`, ví dụ: 'USER_DATA_DIR', 'TELE_BOT', 'AI_BOT', 'MAX_PROFLIES', 'PROXY',...
 
         Returns:
             Optional[List]: 
