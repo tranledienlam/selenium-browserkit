@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.3.0-orange.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-1.0.1-orange.svg)](pyproject.toml)
 
 **Selenium BrowserKit** là một bộ công cụ tự động hóa mạnh mẽ với Selenium, được thiết kế để quản lý nhiều profile trình duyệt, chạy song song, và tích hợp các tính năng AI và Telegram. Phù hợp cho việc xây dựng bot, tool automation, hoặc quản lý nhiều tài khoản cùng lúc.
 
@@ -26,7 +26,7 @@
 
 ### Cài đặt từ PyPI
 ```bash
-pip install selenium-browserkit==0.3.0
+pip install selenium-browserkit==1.0.1
 ```
 
 ### Cài đặt từ source
@@ -167,14 +167,15 @@ BrowserManager(auto_handler=None, setup_handler=None)
 | `get_driver()` | Trả về đối tượng Selenium WebDriver gốc |
 | `go_to(url, method, wait, timeout)` | Điều hướng đến URL |
 | `find(by, value, parent_element, wait, timeout)` | Tìm element |
-| `find_all(by, value, parent_element, wait, timeout)` | Tìm tất cả elements |
+| `finds(by, value, parent_element, wait, timeout)` | Tìm tất cả elements |
 | `find_and_click(by, value, parent_element, wait, timeout)` | Tìm và click element |
 | `find_and_input(by, value, text, parent_element, delay, wait, timeout)` | Tìm và nhập text |
 | `click(element, wait)` | Click element |
 | `press_key(key, parent_element, wait, timeout)` | Nhấn phím |
 | `get_text(by, value, parent_element, wait, timeout)` | Lấy text từ element |
 | `find_in_shadow(selectors, wait, timeout)` | Tìm element trong shadow DOM |
-| `see_by_text(text, by, parent_element, wait, timeout)` | Tìm element theo text |
+| `finds_by_text(text, parent_element, wait, timeout)` | Tìm tất cả element chứa text |
+| `has_texts(texts, wait)`| Kiểm tra nhanh các đoạn text có tồn tại trên trang (không chờ load DOM)|
 | `take_screenshot()` | Chụp màn hình (trả về bytes) |
 | `snapshot(message, stop)` | Chụp và lưu ảnh hoặc gửi đến Tele (nếu có). Nếu `stop=True` thì sẽ dừng luồng code sau khi chụp|
 | `log(message, show_log)` | Ghi log |
@@ -343,14 +344,31 @@ def auto(node: Node, profile: dict):
    - Kiểm tra API key trong config.txt
    - Kiểm tra format cấu hình TELE_BOT và AI_BOT
 
-## 🆕 Update v0.3.0
+## 🆕 Update v1.0.1
 
-Phiên bản **0.3.0** bổ sung và cải thiện các tính năng:
-- `scroll_to(element)` – **Removed** (thay bằng `scroll_to_element(element)`)
-- `scroll_to_element(element)` – Cuộn đến phần tử cụ thể
-- `scroll_to_position(position)` – Cuộn nhanh đến `"top"`, `"middle"`, `"end"` của trang
-- `get_driver()` – Lấy WebDriver gốc để tùy chỉnh nâng cao
-- `add_proxies(*args)` – Thêm danh sách proxy để BrowserManager tự động quản lý
+### ⚙️ Cải tiến & Bổ sung
+- **`has_texts(texts, wait=None, show_log=True)`**  
+  → Kiểm tra nhanh xem trang có chứa một hoặc nhiều đoạn text (không chờ load DOM).  
+  → Trả về danh sách các đoạn text thực sự tồn tại trên trang.
+
+---
+
+### 🔍 Đổi tên & Chuẩn hoá
+
+| Cũ | Mới | Mô tả |
+|----|------|--------|
+| `find_all()` | `finds()` | Tìm **nhiều phần tử** theo selector |
+| `see_by_text()` | `finds_by_text()` | Tìm **tất cả phần tử chứa text** |
+
+---
+
+### 🧭 Sửa lỗi & Tối ưu
+- 🐞 **Fix:** Lỗi hiển thị **menu lựa chọn A/B** khi người dùng nhấn **Enter** (input rỗng).  
+- 🐞 **Fix:** Lỗi `proxy_info=None` gây crash khi khởi tạo Chrome.
+---
+
+📦 **Phiên bản:** `1.0.1`
+
 
 ## 📄 License
 

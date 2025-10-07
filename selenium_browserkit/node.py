@@ -413,7 +413,7 @@ class Node:
 
         return None
     
-    def find_all(self, by: str, value: str, parent_element: WebElement|None = None, wait: float|None = None, timeout: float|None = None, show_log: bool = True):
+    def finds(self, by: str, value: str, parent_element: WebElement|None = None, wait: float|None = None, timeout: float|None = None, show_log: bool = True):
         '''
         Phương thức tìm tất cả các phần tử trên trang web trong khoảng thời gian chờ cụ thể.
 
@@ -517,7 +517,7 @@ class Node:
 
         return None
 
-    def see_by_text(self, text: str,  by: str = By.XPATH, parent_element: WebElement | None = None, wait: float | None = None, timeout: float | None = None, show_log: bool = True) -> list[WebElement]:
+    def finds_by_text(self, text: str, parent_element: WebElement | None = None, wait: float | None = None, timeout: float | None = None, show_log: bool = True) -> list[WebElement]:
         '''
         Tìm tất cả phần tử chứa đoạn text cho trước, bất kể thẻ nào (div, p, span,...).
 
@@ -527,7 +527,7 @@ class Node:
             parent_element (WebElement, optional): Nếu có, tìm trong phần tử này.
             wait (float, optional): Thời gian chờ trước khi tìm.
             timeout (float, optional): Thời gian chờ tối đa để tìm phần tử.
-            show_log (bool): Có hiển thị log hay không.
+            show_log (bool, optional): Có hiển thị log hay không.
 
         Returns:
             list[WebElement]: Danh sách phần tử chứa đoạn text.
@@ -542,7 +542,7 @@ class Node:
         try:
             search_context = parent_element if parent_element else self._driver
             elements = WebDriverWait(search_context, timeout).until(
-                EC.presence_of_all_elements_located((by, value))
+                EC.presence_of_all_elements_located((By.XPATH, value))
             )
             self.log(message=f'🔍 Tìm thấy {len(elements)} phần tử chứa "{text}"', show_log=show_log)
             return elements
@@ -556,23 +556,57 @@ class Node:
 
         return []
 
+    def has_texts(self, texts: str | list[str] | set[str], wait: float | None = None, show_log: bool = True) -> list[str]:
+        """
+        Kiểm tra nhanh các đoạn text có tồn tại trên trang.
+        Không chờ load, chỉ query DOM tức thì. 
+        
+        Args: 
+            texts (str | list[str] | set[str]): nội dung cần tìm.
+            wait (float, optional): Thời gian chờ trước khi kiểm tra (giây).
+            show_log (bool, optional): Có hiển thị log hay không. 
+        
+        Returns: 
+            list[str]: Danh sách nội dung thực sự tồn tại trên trang.
+        """
+        wait = self._get_wait(wait)
+        Utility.wait_time(wait)
+        if isinstance(texts, str):
+            texts = [texts]
+        else:
+            texts = list(texts)
+
+        found = []
+        for text in texts:
+            value = f'//*[contains(normalize-space(.), "{text}")]'
+            elements = self._driver.find_elements(By.XPATH, value)
+            if elements:
+                found.append(text)
+
+        if found:
+            self.log(f'🔍 Tìm thấy nội dung: {found}', show_log=show_log)
+        else:
+            self.log(f'🔍 Không tìm thấy nội dung: {texts}', show_log=show_log)
+
+        return found
+    
     def click(self, element: WebElement|None = None, wait: float|None = None) -> bool:
         '''
-            Nhấp vào một phần tử trên trang web.
+        Nhấp vào một phần tử trên trang web.
 
-    Args:
-        value (WebElement): Phần tử cần nhấp.
-        wait (float, optional): Thời gian chờ (giây) trước khi nhấp. Mặc định là `self.wait`.
+        Args:
+            value (WebElement): Phần tử cần nhấp.
+            wait (float, optional): Thời gian chờ (giây) trước khi nhấp. Mặc định là `self.wait`.
 
-    Returns:
-        bool: 
-            - `True`: nếu nhấp thành công.
-            - `False`: nếu gặp lỗi.
+        Returns:
+            bool: 
+                - `True`: nếu nhấp thành công.
+                - `False`: nếu gặp lỗi.
 
-    Ghi chú:
-        - Gọi `.click()` trên phần tử sau khi chờ thời gian ngắn (nếu được chỉ định).
-        - Ghi log kết quả thao tác hoặc lỗi gặp phải.
-    '''
+        Ghi chú:
+            - Gọi `.click()` trên phần tử sau khi chờ thời gian ngắn (nếu được chỉ định).
+            - Ghi log kết quả thao tác hoặc lỗi gặp phải.
+        '''
         wait = self._get_wait(wait)
         Utility.wait_time(wait)
         

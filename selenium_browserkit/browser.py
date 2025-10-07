@@ -208,7 +208,7 @@ class BrowserManager:                                                           
 
         manifest_json = """
         {
-            "version": "1.0.0",
+            "version": "1.0.1",
             "manifest_version": 2,
             "name": "Proxies",
             "permissions": [
@@ -543,6 +543,8 @@ class BrowserManager:                                                           
         # check proxies
         if not self._proxies_info:
             self._proxies_info = Utility.read_config('PROXY')
+            if self._proxies_info is None:
+                self._proxies_info = []
         if self._proxies_info:
             print(f'🛠️  Đang kiểm tra proxy...')
         for proxy_info in self._proxies_info:
@@ -832,10 +834,12 @@ class BrowserManager:                                                           
                     print("   3. Xóa profile  - Xoá các profile đã tồn tại.") # đoạn này xuất hiện, nếu có tồn tại danh sách user_data_profiles ở trên
                 print("   0. Thoát        - Thoát chương trình.")
                 choice_a = input("Nhập lựa chọn: ")
+            
+            print(f'check choice_a: {choice_a}')
             ## Xử lý A
             if choice_a in ('1', '2'):
                 show_profiles = data_profiles
-            elif choice_a in ('3'):
+            elif choice_a == '3':
                 if user_data_profiles:
                     show_profiles = user_data_profiles
                 else:
