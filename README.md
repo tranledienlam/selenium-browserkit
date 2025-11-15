@@ -367,20 +367,6 @@ def auto(node: Node, profile: dict):
 
 ---
 
-### 🔍 Đổi tên & Chuẩn hoá
-
-| Cũ | Mới | Mô tả |
-|----|------|--------|
-| `find_all()` | `finds()` | Tìm **nhiều phần tử** theo selector |
-| `see_by_text()` | `finds_by_text()` | Tìm **tất cả phần tử chứa text** |
-
----
-
-### 🧭 Sửa lỗi & Tối ưu
-- 🐞 **Fix:** Lỗi hiển thị **menu lựa chọn A/B** khi người dùng nhấn **Enter** (input rỗng).  
-- 🐞 **Fix:** Lỗi `proxy_info=None` gây crash khi khởi tạo Chrome.
----
-
 📦 **Phiên bản:** `1.1.0`
 
 
