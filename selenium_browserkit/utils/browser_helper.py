@@ -256,11 +256,11 @@ class Chromium:
         - Tên tệp nén và công cụ giải nén
         - Đường dẫn thư mục tải và thư mục đích
         """
-        self._CHROMIUM_URL = "https://github.com/macchrome/winchrome/releases/download/v136.7103.97-M136.0.7103.97-r1440670-Win64/ungoogled-chromium-136.0.7103.97-1_Win64.7z"
+        self._CHROMIUM_URL = "https://github.com/macchrome/winchrome/releases/download/v142.7444.142-M142.0.7444.142-r1522585-Win64/ungoogled-chromium-142.0.7444.142-1_Win64.7z"
         self._EXE_URL = "https://www.7-zip.org/a/7zr.exe"
-        self._FILE_CHROMIUM = "chromium136.7z"
+        self._FILE_CHROMIUM = "chromium142.7z"
         self._FILE_EXE = "7zr.exe"
-        self._TARGET_FOLDER_NAME = "chromium136"
+        self._TARGET_FOLDER_NAME = "chromium142"
         self._DOWLOAD_PATH = Path(self._get_system_drive()) / 'chromium'
 
         self.path = self._setup()

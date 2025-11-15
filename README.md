@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.1-orange.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-1.1.0-orange.svg)](pyproject.toml)
 
 **Selenium BrowserKit** là một bộ công cụ tự động hóa mạnh mẽ với Selenium, được thiết kế để quản lý nhiều profile trình duyệt, chạy song song, và tích hợp các tính năng AI và Telegram. Phù hợp cho việc xây dựng bot, tool automation, hoặc quản lý nhiều tài khoản cùng lúc.
 
@@ -26,7 +26,7 @@
 
 ### Cài đặt từ PyPI
 ```bash
-pip install selenium-browserkit==1.0.1
+pip install selenium-browserkit==1.1.0
 ```
 
 ### Cài đặt từ source
@@ -175,7 +175,7 @@ BrowserManager(auto_handler=None, setup_handler=None)
 | `get_text(by, value, parent_element, wait, timeout)` | Lấy text từ element |
 | `find_in_shadow(selectors, wait, timeout)` | Tìm element trong shadow DOM |
 | `finds_by_text(text, parent_element, wait, timeout)` | Tìm tất cả element chứa text |
-| `has_texts(texts, wait)`| Kiểm tra nhanh các đoạn text có tồn tại trên trang (không chờ load DOM)|
+| `has_texts(texts, wait)` | Kiểm tra nhanh xem trang có chứa một hoặc nhiều đoạn text. Trả về danh sách các text thực sự tồn tại. |
 | `take_screenshot()` | Chụp màn hình (trả về bytes) |
 | `snapshot(message, stop)` | Chụp và lưu ảnh hoặc gửi đến Tele (nếu có). Nếu `stop=True` thì sẽ dừng luồng code sau khi chụp|
 | `log(message, show_log)` | Ghi log |
@@ -344,12 +344,26 @@ def auto(node: Node, profile: dict):
    - Kiểm tra API key trong config.txt
    - Kiểm tra format cấu hình TELE_BOT và AI_BOT
 
-## 🆕 Update v1.0.1
+## 🆕 Update v1.1.0
 
 ### ⚙️ Cải tiến & Bổ sung
-- **`has_texts(texts, wait=None, show_log=True)`**  
-  → Kiểm tra nhanh xem trang có chứa một hoặc nhiều đoạn text (không chờ load DOM).  
-  → Trả về danh sách các đoạn text thực sự tồn tại trên trang.
+
+- Thêm Node **`has_texts(texts, wait=None, show_log=True)`**  
+  - Hàm kiểm tra nhanh sự tồn tại của một hoặc nhiều đoạn văn bản trên trang.  
+  - Không cần DOM load hoàn chỉnh → tốc độ nhanh hơn.  
+  - Trả về danh sách các text thực sự xuất hiện.
+
+- **Nâng cấp Chromium lên phiên bản 142**  
+  - Tăng hiệu suất, tối ưu độ ổn định và khả năng tương thích.
+
+- **Sửa lỗi thông báo “Restore” khi Chromium bị tắt đột ngột**  
+  - Tự động đặt `exit_type = "Normal"` để tránh yêu cầu khôi phục phiên làm việc.
+
+- **Extension hoạt động ổn định trở lại**  
+  - Sửa lỗi extension không load hoặc load thiếu.
+
+- **Cơ chế kiểm tra profile chặt chẽ hơn**  
+  - Kiểm tra profile đang hoạt động hay không trước khi mở.  
 
 ---
 
@@ -367,7 +381,7 @@ def auto(node: Node, profile: dict):
 - 🐞 **Fix:** Lỗi `proxy_info=None` gây crash khi khởi tạo Chrome.
 ---
 
-📦 **Phiên bản:** `1.0.1`
+📦 **Phiên bản:** `1.1.0`
 
 
 ## 📄 License

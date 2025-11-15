@@ -1,7 +1,7 @@
 import os
 import random
 import sys
-import glob
+import json
 import shutil
 import psutil
 import zipfile
@@ -208,7 +208,7 @@ class BrowserManager:                                                           
 
         manifest_json = """
         {
-            "version": "1.0.1",
+            "version": "1.1.0",
             "manifest_version": 2,
             "name": "Proxies",
             "permissions": [
@@ -519,10 +519,13 @@ class BrowserManager:                                                           
 
         self._extensions = result
 
-    def _check_before_run(self):
+    def _check_before_run_tool(self):
         print("=================================")
         print('Checking trước khi chạy...')
         print("=================================")
+        print("...")
+        if not self.config.sys_chrome:
+            self._path_chromium = Chromium().path
         # Đọc file config
         config_path = DIR_PATH / 'config.txt'
         if config_path.exists():
@@ -530,10 +533,8 @@ class BrowserManager:                                                           
                 self._tele_bot = TeleHelper()
             if self.config.use_ai:
                 self._ai_bot = AIHelper()
-            if not self.config.sys_chrome:
-                self._path_chromium = Chromium().path
-        else:        
-            print(f"⚠️ Tệp {config_path} không tồn tại. Sử dụng config mặc định")
+        else:
+            print(f"⚠️  Không tìm thấy file config: {config_path}\n→ Đang sử dụng cấu hình mặc định.\n📘 Tham khảo config_example.txt tại: https://github.com/tranledienlam/selenium-browserkit/tree/main/examples")      
         self._user_data_dir = self._get_user_data_dir()
 
         # check extension
@@ -572,6 +573,77 @@ class BrowserManager:                                                           
                     Utility._kill_chrome(data.get('CHROMEPID'))
                     Utility._remove_lock(lock)
 
+    def _check_before_run_browser(self, path_lock, profile_name):
+        path_lock_chrome = self._user_data_dir/profile_name/"lockfile"
+
+        # check lockfile chrome có tồn tại hay không
+        if path_lock_chrome.exists():
+            # Chờ profile được giải phóng nếu đang bị khóa
+            data_lock = Utility._read_lock(path_lock)
+            if data_lock == None:
+                pass
+            elif data_lock == {}:
+                Utility._remove_lock(path_lock)
+            else:
+                name_tool = data_lock.get("TOOL")
+                if not (name_tool == Utility._sanitize_text(DIR_PATH.name)) and Utility._is_process_alive(data_lock.get('PYTHONPID')):
+                    self._log(profile_name, f"❌ Đang lock bởi tool [{name_tool}]")
+                    return False
+
+            self._log(profile_name, f"❌ Đang lock. Nhưng không xác định được tool cụ thể đang chạy")
+            return False
+
+        Utility._remove_lock(path_lock)
+
+        # fix thuộc tính "exit_type": "Crashed" → "Normal".
+        try:
+            path_references = self._user_data_dir/profile_name/profile_name/"Preferences"
+            if path_references.exists():
+                with open(path_references, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+
+                # Thay giá trị exit_type
+                if "exit_type" in data:
+                    data["exit_type"] = "Normal"
+                elif "profile" in data and "exit_type" in data["profile"]:
+                    data["profile"]["exit_type"] = "Normal"
+                else:
+                    print("Không tìm thấy khóa exit_type trong Preferences")
+
+                with open(path_references, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2)
+
+        except Exception as e:
+            self._log(message={e})
+
+        return True
+
+    def _check_after_run_browser(self, driver, path_lock):
+        # Tìm Chrome con của chromedriver
+        chrome_pid = None
+        try:
+            chromedriver_pid = driver.service.process.pid
+            parent = psutil.Process(chromedriver_pid)
+            children = parent.children(recursive=True)
+            for child in children:
+                if "chrome" in child.name().lower():
+                    chrome_pid = child.pid
+                    break
+        except Exception as e:
+            print("Không tìm thấy Chrome con:", e)
+
+        # Lock profile với PID
+        Utility._lock_profile(path_lock, chrome_pid)
+        
+        return chrome_pid
+
+    def _check_after_close_browser(self, path_lock, chrome_pid):
+        Utility._kill_chrome(chrome_pid)
+        Utility._remove_lock(path_lock)
+
+    def _check_before_close_tool(self):
+        Utility._remove_lock(self._pid_path)
+
     def _run_browser(self, profile: dict, row: int = 0, col: int = 0, stop_flag: bool = False):
         '''
         Phương thức khởi chạy trình duyệt (browser).
@@ -601,47 +673,13 @@ class BrowserManager:                                                           
         proxy_info = profile.get('proxy_info')
         path_lock = self._user_data_dir / f'''{Utility._sanitize_text(profile_name)}.lock'''
         
-        # Chờ profile được giải phóng nếu đang bị khóa
-        try:
-            data_lock = Utility._read_lock(path_lock)
-            if data_lock == None:
-                pass
-            elif data_lock == {}:
-                Utility._remove_lock(path_lock)
-            else:
-                chrome_pid = data_lock.get("CHROMEPID")
-                name_tool = data_lock.get("TOOL")
-                if not (name_tool == Utility._sanitize_text(DIR_PATH.name)) and Utility._is_process_alive(data_lock.get('PYTHONPID')):
-                    self._log(profile_name, f"❌ Đang lock bởi tool [{name_tool}]")
-                    return
-                
-                Utility._kill_chrome(chrome_pid)
-                Utility._remove_lock(path_lock)
-                
-        except Exception as e:
-            print(f'Lỗi read lock: {e}')
+        if not self._check_before_run_browser(path_lock=path_lock, profile_name=profile_name):
             return
 
         driver = None
-        chrome_pid = None
         try:
             driver = self._browser(profile_name, proxy_info)
-
-            # Tìm Chrome con của chromedriver
-            try:
-                chromedriver_pid = driver.service.process.pid
-                chrome_pid = None
-                parent = psutil.Process(chromedriver_pid)
-                children = parent.children(recursive=True)
-                for child in children:
-                    if "chrome" in child.name().lower():
-                        chrome_pid = child.pid
-                        break
-            except Exception as e:
-                print("Không tìm thấy Chrome con:", e)
-
-            # Lock profile với PID
-            Utility._lock_profile(path_lock, chrome_pid)
+            chrome_pid = self._check_after_run_browser(driver=driver, path_lock=path_lock)
 
             self._arrange_window(driver, row, col)
             node = Node(driver, profile_name, self._tele_bot, self._ai_bot)
@@ -671,8 +709,8 @@ class BrowserManager:                                                           
                     pass
 
             # Giải phóng profile
-            Utility._kill_chrome(chrome_pid)
-            Utility._remove_lock(path_lock)
+            self._check_after_close_browser(path_lock=path_lock,
+                                            chrome_pid=chrome_pid)
             self._release_position(profile_name, row, col)
 
     def _run_multi(self, profiles: list[dict], max_concurrent_profiles: int = 1, delay_between_profiles: int = 10):
@@ -764,7 +802,7 @@ class BrowserManager:                                                           
         if not profiles:
             self._log(message=f"profiles phải là 1 list, chứa key 'profile_name'")
             return
-        self._check_before_run()
+        self._check_before_run_tool()
 
         # Đầu vào trước khi chạy tool
 
@@ -835,7 +873,6 @@ class BrowserManager:                                                           
                 print("   0. Thoát        - Thoát chương trình.")
                 choice_a = input("Nhập lựa chọn: ")
             
-            print(f'check choice_a: {choice_a}')
             ## Xử lý A
             if choice_a in ('1', '2'):
                 show_profiles = data_profiles
@@ -963,4 +1000,4 @@ class BrowserManager:                                                           
                 Utility._print_section(f"Đã xóa profile: {profiles_to_deleted}")
         
         # Kêt thúc Tool
-        Utility._remove_lock(self._pid_path)
+        self._check_before_close_tool()

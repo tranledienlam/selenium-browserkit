@@ -1,25 +1,41 @@
 # Đổi tên file config_example.txt thành config.txt để sử dụng
 
 # Số lượng profiles chạy đồng thời mỗi lượt.
-## Ví dụ: chạy 100 profile, mỗi lần chạy 4 profiles (mặc định)
-MAX_PROFLIES=4
+# Ví dụ: chạy 100 profile, mỗi lần chạy 4 profiles (mặc định: 4)
+MAX_PROFLIES=5
 
 # Cấu hình đường dẫn lưu profile <PATH>
-## Để trống, user_data mặc định cùng thư mục tool.
-## Thay đổi nơi khác, ví dụ: E:\profiles\discord
+# Để trống, user_data mặc định cùng thư mục tool.
+# Thay đổi nơi khác, ví dụ: E:\profiles\discord
 USER_DATA_DIR=
 
 # Thông tin Tele Bot <USER_ID>|<BOT_TOKEN>|<ENDPOINT_URL (tùy chọn)>
-## Có thể thêm nhiều dòng TELE_BOT khác nhau. Tool sẽ ưu tiên tele từ trên xuống.
-TELE_BOT=1234567890|1235647890:AAFce0bukTPYase66cr_PH_ahBaCdU36xyc
+# Có thể thêm nhiều dòng TELE_BOT khác nhau. Tool sẽ ưu tiên tele từ trên xuống.
+TELE_BOT=
 TELE_BOT=
 
 # Thông tin AI Bot <AI_BOT_TOKEN>
-## Có thể thêm nhiều dòng AI_BOT khác nhau. Tool sẽ lấy token theo ưu tiên từ trên xuống.
-AI_BOT=AIzjSyAxmkXl_3aixsTcRAJSabUeLmzsSz0ovAg
+# Có thể thêm nhiều dòng AI_BOT khác nhau. Tool sẽ lấy token theo ưu tiên từ trên xuống.
+AI_BOT=AIzdklSaMkXl_3nexsTcRmdHepUeLmzpSz0JvAg
 AI_BOT=
 
 # Đường dẫn môi trường chạy Python <PATH>
-## Để trống để sử dụng Python hệ thống
-## Hoặc chỉ định đường dẫn môi trường ảo: E:\venv\Scripts\python.exe
-PYTHON_PATH=
+# Để trống để sử dụng Python hệ thống
+# Hoặc chỉ định đường dẫn môi trường ảo: E:\venv\Scripts\python.exe
+
+PYTHON_PATH=E:\venv\Scripts\python.exe
+
+# PROXY mặc định dùng chung cho tất cả profiles
+# Nếu profile không có proxy riêng hoặc proxy riêng không hoạt động, tool sẽ dùng proxy này.
+# Các định dạng hợp lệ:
+#   PROXY=ip:port
+#   PROXY=ip:port@username:password
+#   PROXY=username:password@ip:port
+#
+# Ví dụ:
+#   PROXY=107.172.163.27:6543
+#   PROXY=142.111.48.253:7030@hjusxubh:fc9nxh5h4spe
+#   PROXY=hjusxubh:fc9nxh5h4spe@45.38.107.97:6014
+
+PROXY=
+PROXY=
