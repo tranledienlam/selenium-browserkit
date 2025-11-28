@@ -208,7 +208,7 @@ class BrowserManager:                                                           
 
         manifest_json = """
         {
-            "version": "1.1.0",
+            "version": "1.1.1",
             "manifest_version": 2,
             "name": "Proxies",
             "permissions": [

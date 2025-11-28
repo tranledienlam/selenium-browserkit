@@ -1,6 +1,6 @@
+import sys
 from datetime import datetime
 from typing import cast
-
 from selenium import webdriver
 from selenium.webdriver.common.window import WindowTypes
 from selenium.webdriver.common.by import By
@@ -744,15 +744,11 @@ class Node:
             element = WebDriverWait(search_context, timeout).until(
                 EC.visibility_of_element_located((by, value))
             )
-
             Utility.wait_time(wait)
 
-            element.send_keys(Keys.CONTROL + "a")
-            element.send_keys(Keys.DELETE)
-            
-            for char in text:
+            for ch in text:
                 Utility.wait_time(delay)
-                element.send_keys(char)
+                ActionChains(self._driver).send_keys_to_element(element, ch).perform()
             self.log(f'Nhập văn bản phần tử ({by}, {value}) thành công')
             return True
 
@@ -768,20 +764,21 @@ class Node:
         except Exception as e:
             # Thử phương pháp click khác khi bị lỗi từ Javascript
             if 'LavaMoat' in str(e):
-                element = WebDriverWait(search_context, timeout).until(
-                    EC.presence_of_element_located((by, value))
-                )
-                Utility.wait_time(wait)
-
-                element.send_keys(Keys.CONTROL + "a")
-                element.send_keys(Keys.DELETE)
+                try:
+                    element = WebDriverWait(search_context, timeout).until(
+                        EC.presence_of_element_located((by, value))
+                    )
+                    Utility.wait_time(wait)
+                    cmd_ctrl = Keys.COMMAND if sys.platform == 'darwin' else Keys.CONTROL
+                    
+                    for ch in text:
+                        Utility.wait_time(delay)
+                        ActionChains(self._driver).send_keys_to_element(element, ch).perform()
+                    self.log(f'Nhập văn bản phần tử ({by}, {value}) thành công (PT2)')
                 
-                for char in text:
-                    Utility.wait_time(delay)
-                    element.send_keys(char)
-                self.log(
-                    f'Nhập văn bản phần tử ({by}, {value}) thành công (PT2)')
-                return True
+                except Exception as e:
+                    self.log(f'Lỗi - không xác định ({by}, {value}) {e}')
+            
             else:
                 self.log(f'Lỗi - không xác định ({by}, {value}) {e}')
 
@@ -819,7 +816,7 @@ class Node:
             if parent_element:
                 # Nhấn phím trong element cụ thể
                 if parent_element.is_displayed():
-                    parent_element.send_keys(key_to_press)
+                     ActionChains(self._driver).send_keys_to_element(parent_element, key_to_press).perform()
                 else:
                     self.log(f"⚠️ Element không hiển thị, không thể nhấn phím {key}")
                     return False

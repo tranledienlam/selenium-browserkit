@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.0-orange.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-1.1.1-orange.svg)](pyproject.toml)
 
 **Selenium BrowserKit** là một bộ công cụ tự động hóa mạnh mẽ với Selenium, được thiết kế để quản lý nhiều profile trình duyệt, chạy song song, và tích hợp các tính năng AI và Telegram. Phù hợp cho việc xây dựng bot, tool automation, hoặc quản lý nhiều tài khoản cùng lúc.
 
@@ -26,7 +26,7 @@
 
 ### Cài đặt từ PyPI
 ```bash
-pip install selenium-browserkit==1.1.0
+pip install selenium-browserkit==1.1.1
 ```
 
 ### Cài đặt từ source
@@ -344,30 +344,18 @@ def auto(node: Node, profile: dict):
    - Kiểm tra API key trong config.txt
    - Kiểm tra format cấu hình TELE_BOT và AI_BOT
 
-## 🆕 Update v1.1.0
+## 🆕 Update v1.1.1
 
-### ⚙️ Cải tiến & Bổ sung
+### ⚙️ Cải tiến mới
 
-- Thêm Node **`has_texts(texts, wait=None, show_log=True)`**  
-  - Hàm kiểm tra nhanh sự tồn tại của một hoặc nhiều đoạn văn bản trên trang.  
-  - Không cần DOM load hoàn chỉnh → tốc độ nhanh hơn.  
-  - Trả về danh sách các text thực sự xuất hiện.
-
-- **Nâng cấp Chromium lên phiên bản 142**  
-  - Tăng hiệu suất, tối ưu độ ổn định và khả năng tương thích.
-
-- **Sửa lỗi thông báo “Restore” khi Chromium bị tắt đột ngột**  
-  - Tự động đặt `exit_type = "Normal"` để tránh yêu cầu khôi phục phiên làm việc.
-
-- **Extension hoạt động ổn định trở lại**  
-  - Sửa lỗi extension không load hoặc load thiếu.
-
-- **Cơ chế kiểm tra profile chặt chẽ hơn**  
-  - Kiểm tra profile đang hoạt động hay không trước khi mở.  
+- **Refactor Node nhập liệu: chuyển sang sử dụng `ActionChains`**
+  - **Node `find_and_input`**: dùng `ActionChains` để thực hiện Ctrl+A → Delete → nhập text — ổn định hơn, giảm lỗi mất ký tự.
+  - **Node `press_key`**: gửi tổ hợp phím bằng `ActionChains` (key_down → send_keys → key_up).
+  - Giúp **loại bỏ hoàn toàn lỗi từ `element.send_keys`** khi trang chặn input trực tiếp hoặc khi dùng proxy / profile.
 
 ---
 
-📦 **Phiên bản:** `1.1.0`
+📦 **Phiên bản:** `1.1.1`
 
 
 ## 📄 License
