@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.1-orange.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-1.1.2-orange.svg)](pyproject.toml)
 
 **Selenium BrowserKit** là một bộ công cụ tự động hóa mạnh mẽ với Selenium, được thiết kế để quản lý nhiều profile trình duyệt, chạy song song, và tích hợp các tính năng AI và Telegram. Phù hợp cho việc xây dựng bot, tool automation, hoặc quản lý nhiều tài khoản cùng lúc.
 
@@ -26,7 +26,7 @@
 
 ### Cài đặt từ PyPI
 ```bash
-pip install selenium-browserkit==1.1.1
+pip install selenium-browserkit==1.1.2
 ```
 
 ### Cài đặt từ source
@@ -187,6 +187,7 @@ BrowserManager(auto_handler=None, setup_handler=None)
 | `scroll_to_element(element, wait)` | Cuộn đến element |
 | `scroll_to_position(position, wait)` | Cuộn đến vị trí  "top", "middle", "end" của trang|
 | `wait_for_disappear(by, value, parent_element, wait, timeout)` | Chờ element biến mất |
+| `wait_for_page_load(wait, timeout)` | Chờ trang load xong |
 | `ask_ai(prompt, is_image, wait)` | Hỏi AI (Gemini) |
 | `execute_chain(actions, message_error)` | Thực hiện chuỗi hành động |
 
@@ -344,18 +345,39 @@ def auto(node: Node, profile: dict):
    - Kiểm tra API key trong config.txt
    - Kiểm tra format cấu hình TELE_BOT và AI_BOT
 
-## 🆕 Update v1.1.1
+## 🆕 Update v1.1.2
 
 ### ⚙️ Cải tiến mới
 
-- **Refactor Node nhập liệu: chuyển sang sử dụng `ActionChains`**
-  - **Node `find_and_input`**: dùng `ActionChains` để thực hiện Ctrl+A → Delete → nhập text — ổn định hơn, giảm lỗi mất ký tự.
-  - **Node `press_key`**: gửi tổ hợp phím bằng `ActionChains` (key_down → send_keys → key_up).
-  - Giúp **loại bỏ hoàn toàn lỗi từ `element.send_keys`** khi trang chặn input trực tiếp hoặc khi dùng proxy / profile.
+- **Chuẩn hóa lại mô tả các Node**
+  - Giúp dễ đọc, dễ hiểu và thống nhất cách sử dụng các node trong workflow.
 
+- **Node `has_texts` và `finds_by_text`**
+  - Chỉnh lại XPath tìm kiếm, cho phép tìm tất cả phần tử chứa text bất kể thẻ nào (div, span, p,…), không phân biệt hoa thường:
+    ```python
+    xpath = (
+            "//*[contains("
+            "translate(normalize-space(.), "
+            "'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯÀÁẢÃẠẮẰẲẴẶẤẦẨẪẬÉÈẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰÝỲỶỸỴ', "
+            "'abcdefghijklmnopqrstuvwxyzàáâãèéêìíòóôõùúăđĩũơưàáảãạắằẳẵặấầẩẫậéèẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựýỳỷỹỵ'"
+            "), "
+            f"'{text.lower()}')]"
+        )
+    ```
+
+- **Node `get_url`**
+  - Thêm `try-except` để tránh lỗi khi không lấy được URL hiện tại:
+
+- **Thêm Node `wait_for_page_load`**
+  - Chờ trang load hoàn toàn trước khi thực hiện hành động tiếp theo:
+    ```python
+    WebDriverWait(self._driver, timeout).until(
+        lambda driver: driver.execute_script("return document.readyState") == 'complete'
+    )
+    ```
 ---
 
-📦 **Phiên bản:** `1.1.1`
+📦 **Phiên bản:** `1.1.2`
 
 
 ## 📄 License

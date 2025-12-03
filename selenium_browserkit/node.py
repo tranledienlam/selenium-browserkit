@@ -1,4 +1,3 @@
-import sys
 from datetime import datetime
 from typing import cast
 from selenium import webdriver
@@ -49,9 +48,9 @@ class Node:
             return None
         
         if not snapshot_dir.exists():
-            self.log(f'Không tin thấy thư mục {snapshot_dir}. Đang tạo...')
+            self.log(f'⚠️ Không tin thấy thư mục {snapshot_dir}. Đang tạo...')
             snapshot_dir.mkdir(parents=True, exist_ok=True)
-            self.log(f'Tạo thư mục Snapshot thành công')
+            self.log(f'✅ Tạo thư mục Snapshot thành công')
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         file_path = str(snapshot_dir/f'{self._profile_name}_{timestamp}.png')
@@ -59,13 +58,13 @@ class Node:
             with open(file_path, 'wb') as f:
                 f.write(screenshot_png)
 
+            self.log(f'✅ Ảnh đã được lưu tại Snapshot')
+            return file_path
+
         except Exception as e:
             self.log(f'❌ Không thể ghi file ảnh: {e}')
             return None
         
-        self.log(f'✅ Ảnh đã được lưu tại Snapshot')
-        return file_path
-
     def _send_screenshot_to_telegram(self, message: str):
         screenshot_png = self.take_screenshot()
         
@@ -142,7 +141,7 @@ class Node:
 
             else:
                 self.log(
-                    f"Lỗi - {action} phải là một function hoặc tuple chứa function.")
+                    f"{action} phải là một function hoặc tuple chứa function.")
                 return False
 
             if not self._execute_node(func, *args):
@@ -166,7 +165,7 @@ class Node:
 
         Args:
             message (str, optional): Nội dung thông báo log. Mặc định là 'message chưa có mô tả'.
-            show_log (bool, optional): cho phép hiển thị nhật ký hay không. Mặc định: True (cho phép).
+            show_log (bool, optional): Có hiển thị log ra console hay không. Mặc định: True (cho phép).
 
         Mô tả:
             - Phương thức sử dụng tiện ích `Utility.logger` để ghi lại thông tin nhật ký kèm theo tên hồ sơ (`profile_name`) của phiên làm việc hiện tại.
@@ -220,16 +219,14 @@ class Node:
                 - `'script'` → sử dụng JavaScript để thay đổi location.
                 - `'get'` → sử dụng `driver.get(url)`.
             wait (float, optional): Thời gian chờ trước khi thực hiện thao tác (tính bằng giây). Mặc định là giá trị của `self.wait`.
-            timeout (float, optional): Thời gian chờ tối đa để trang tải hoàn tất (tính bằng giây). Mặc định là giá trị của `self.timeout = 20`.
+            timeout (float, optional): Thời gian chờ tối đa để trang tải hoàn tất (tính bằng giây). Mặc định là giá trị của `self.timeout = 30`.
 
         Returns:
             bool:
                 - `True`: Nếu tab mới được mở và (nếu có URL) trang đã tải thành công.
-                - `None`: Nếu chỉ mở tab mới mà không điều hướng đến URL.
-
-        Raises:
-            Exception: Nếu xảy ra lỗi trong quá trình mở tab mới hoặc điều hướng trang.
-
+                - `False`: Mở Tab và điều hướng được nhưng trang load không hoàn tất trong thời gian chờ (timeout).
+                - `None`: Lỗi không xác định (driver bị crash, lỗi JS, tab đóng, ngoại lệ Selenium,...).
+        
         Example:
             # Chỉ mở tab mới
             self.new_tab()
@@ -237,24 +234,33 @@ class Node:
             # Mở tab mới và điều hướng đến Google
             self.new_tab(url="https://www.google.com")
         '''
-
         wait = self._get_wait(wait)
         timeout = self._get_timeout(timeout)
 
         Utility.wait_time(wait)
-
         try:
             self._driver.switch_to.new_window(WindowTypes.TAB)
 
             if url:
-                return self.go_to(url=url, method=method, wait=1, timeout=timeout)
-
+                success = self.go_to(url=url, method=method, wait=1, timeout=timeout, show_log=False)
+                if success == True:
+                    self.log(f"✅ Trang {url} đã load xong.")
+                    return True
+                elif success == False:
+                    self.log(f"❌ Timeout khi chờ trang {url} load")
+                    return False
+                elif success == None:
+                    # self.log tại self.go_to
+                    return None
+            else:
+                self.log(f"✅ Mở Tab mới thành công.")
+                return True
+                    
         except Exception as e:
-            self.log(f'Lỗi khi tải trang {url}: {e}')
+            self.log(f'❌ Lỗi khi Tab mới{" ("+url+")" if url else ""}: {e}')
+            return None
 
-        return False
-
-    def go_to(self, url: str, method: str = 'script', wait: float|None = None, timeout: float|None = None):
+    def go_to(self, url: str, method: str = 'script', wait: float|None = None, timeout: float|None = None, show_log: bool = True):
         '''
         Điều hướng trình duyệt đến một URL cụ thể và chờ trang tải hoàn tất.
 
@@ -264,12 +270,13 @@ class Node:
                 - `'script'` → sử dụng JavaScript để thay đổi location.
                 - `'get'` → sử dụng `driver.get(url)`.
             wait (float, optional): Thời gian chờ trước khi điều hướng, mặc định là giá trị của `self.wait = 3`.
-            timeout (float, optional): Thời gian chờ tải trang, mặc định là giá trị của `self.timeout = 20`.
+            timeout (float, optional): Thời gian chờ tải trang, mặc định là giá trị của `self.timeout = 30`.
 
         Returns:
-            bool:
-                - `True`: nếu trang tải thành công.
-                - `False`: nếu có lỗi xảy ra trong quá trình tải trang.
+            bool | None:
+                - `True`: Điều hướng thành công và trang đã load xong.
+                - `False`: Điều hướng được nhưng trang load không hoàn tất trong thời gian chờ (timeout).
+                - `None`: Lỗi không xác định (driver bị crash, lỗi JS, tab đóng, ngoại lệ Selenium,...).
         '''
         wait = self._get_wait(wait)
         timeout = self._get_timeout(timeout)
@@ -285,22 +292,18 @@ class Node:
             elif method == 'script':
                 self._driver.execute_script(f"window.location.href = '{url}';")
 
-            WebDriverWait(self._driver, timeout).until(
-                lambda driver: driver.execute_script(
-                    "return document.readyState") == 'complete'
-            )
-            self.log(f'Trang {url} đã tải thành công.')
-            return True
+            if self.wait_for_page_load(wait=0, timeout=timeout, show_log=False):
+                self.log(f"✅ Trang {url} đã load xong.", show_log=show_log)
+                return True
+            else:
+                self.log(f"❌ Timeout khi chờ trang {url} load", show_log=show_log)
+                return False
 
         except Exception as e:
-            self.log(f'Lỗi - Khi tải trang "{url}": {e}')
+            self.log(f'❌ - Khi tải trang "{url}": {e}') # không show_log để tất cả node khác thấy lỗi
+            return None
 
-            return False
-
-    def wait_for_disappear(
-        self,
-        by: str,
-        value: str,
+    def wait_for_disappear(self, by: str, value: str,
         parent_element: WebElement|None = None,
         wait: float|None = None,
         timeout: float|None = None,
@@ -314,8 +317,8 @@ class Node:
             value (str): Giá trị tương ứng với phương thức tìm phần tử (ví dụ: tên ID, đường dẫn XPath, v.v.).
             parent_element (WebElement, optional): Nếu có, tìm phần tử con bên trong phần tử này.
             wait (float, optional): Thời gian chờ trước khi điều hướng, mặc định là giá trị của `self.wait = 3`.
-            timeout (float, optional): Thời gian tối đa để chờ (đơn vị: giây). Mặc định sử dụng giá trị `self.timeout = 20`.
-            show_log (bool, optional): Có log ra hay không.
+            timeout (float, optional): Thời gian tối đa để chờ (đơn vị: giây). Mặc định sử dụng giá trị `self.timeout = 30`.
+            show_log (bool, optional): Có hiển thị log ra console hay không. Mặc định: True (cho phép).
 
         Returns:
             bool: 
@@ -357,7 +360,37 @@ class Node:
         except Exception as e:
             self.log(f"❌ Lỗi khi chờ phần tử biến mất ({by}, {value}): {e}")
             return False
-        
+    
+    def wait_for_page_load(self, wait: float|None = None, timeout: float|None = None, show_log: bool = True) -> bool:
+        '''
+        Chờ trang web tải hoàn tất (document.readyState == 'complete').
+
+        Args:
+            wait (float, optional): Thời gian tạm dừng trước khi bắt đầu kiểm tra (mặc định dùng `self.wait = 3`).
+            timeout (float, optional): Thời gian tối đa để chờ trang chuyển sang trạng thái 'complete' (giây). Mặc định sử dụng giá trị `self.timeout = 30`
+            show_log (bool, optional): Có hiển thị log ra console hay không. Mặc định: True (cho phép).
+
+        Returns:
+            bool:
+                - True: Trang đã load xong.
+                - False: Quá thời gian timeout hoặc lỗi khác khi kiểm tra trạng thái trang.
+        '''
+        wait = self._get_wait(wait)
+        timeout = self._get_timeout(timeout)
+
+        try:
+            WebDriverWait(self._driver, timeout).until(
+                lambda driver: driver.execute_script(
+                    "return document.readyState"
+                ) == "complete"
+            )
+            self.log("✅ Trang đã load xong.", show_log=show_log)
+            return True
+
+        except Exception as e:
+            self.log(f"❌ Timeout khi chờ trang load: {e}", show_log=show_log)
+            return False
+
     def get_url(self, wait: float|None = None):
         '''
         Phương thức lấy url hiện tại
@@ -371,7 +404,12 @@ class Node:
         wait = self._get_wait(wait)
 
         Utility.wait_time(wait, True)
-        return self._driver.current_url
+        try:
+            return self._driver.current_url
+
+        except Exception as e:
+            self.log(f'Không thể lấy url hiện tại: {e}')
+            return None
 
     def find(self, by: str, value: str, parent_element: WebElement|None = None, wait: float|None = None, timeout: float|None = None, show_log: bool = True):
         '''
@@ -382,7 +420,7 @@ class Node:
             value (str): Giá trị tương ứng với phương thức tìm phần tử (ví dụ: tên ID, đường dẫn XPath, v.v.).
             parent_element (WebElement, optional): Nếu có, tìm phần tử con bên trong phần tử này.
             wait (float, optional): Thời gian chờ trước khi điều hướng, mặc định là giá trị của `self.wait = 3`.
-            timeout (float, optional): Thời gian tối đa chờ phần tử xuất hiện (đơn vị: giây). Mặc định sử dụng giá trị `self.timeout = 20`.
+            timeout (float, optional): Thời gian tối đa chờ phần tử xuất hiện (đơn vị: giây). Mặc định sử dụng giá trị `self.timeout = 30`.
 
         Returns:
             WebElement | bool:
@@ -403,13 +441,13 @@ class Node:
 
         except TimeoutException:
             self.log(
-                f'Lỗi - Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
+                f'Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
         except StaleElementReferenceException:
             self.log(
-                f'Lỗi - Phần tử ({by}, {value}) đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
+                f'Phần tử ({by}, {value}) đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
         except Exception as e:
             self.log(
-                f'Lỗi - không xác định khi tìm phần tử ({by}, {value}) {e}')
+                f'không xác định khi tìm phần tử ({by}, {value}) {e}')
 
         return None
     
@@ -422,7 +460,7 @@ class Node:
             value (str): Giá trị tương ứng với phương thức tìm phần tử (ví dụ: tên ID, đường dẫn XPath, v.v.).
             parent_element (WebElement, optional): Nếu có, tìm phần tử con bên trong phần tử này.
             wait (float, optional): Thời gian chờ trước khi điều hướng, mặc định là giá trị của `self.wait = 3`.
-            timeout (float, optional): Thời gian tối đa chờ phần tử xuất hiện (đơn vị: giây). Mặc định sử dụng giá trị `self.timeout = 20`.
+            timeout (float, optional): Thời gian tối đa chờ phần tử xuất hiện (đơn vị: giây). Mặc định sử dụng giá trị `self.timeout = 30`.
 
         Returns:
             list[WebElement]: Danh sách các phần tử tìm thấy.
@@ -440,11 +478,11 @@ class Node:
             return elements
 
         except TimeoutException:
-            self.log(f'Lỗi - Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
+            self.log(f'Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
         except StaleElementReferenceException:  
-            self.log(f'Lỗi - Phần tử ({by}, {value}) đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
+            self.log(f'Phần tử ({by}, {value}) đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
         except Exception as e:
-            self.log(f'Lỗi - không xác định khi tìm phần tử ({by}, {value}) {e}')
+            self.log(f'không xác định khi tìm phần tử ({by}, {value}) {e}')
 
         return []   
     
@@ -465,13 +503,13 @@ class Node:
         Utility.wait_time(wait)
 
         if not isinstance(selectors, list) or len(selectors) < 2:
-            self.log("Lỗi - Selectors không hợp lệ (phải có ít nhất 2 phần tử).")
+            self.log("Selectors không hợp lệ (phải có ít nhất 2 phần tử).")
             return None
 
         try:
             if not isinstance(selectors[0], tuple) and len(selectors[0]) != 2:
                 self.log(
-                    f"Lỗi - Selector {selectors[0]} phải có ít nhất 2 phần tử (pt1,pt2)).")
+                    f"Selector {selectors[0]} phải có ít nhất 2 phần tử (pt1,pt2)).")
                 return None
 
             element = WebDriverWait(self._driver, timeout).until(
@@ -481,7 +519,7 @@ class Node:
             for i in range(1, len(selectors)):
                 if not isinstance(selectors[i], tuple) and len(selectors[i]) != 2:
                     self.log(
-                        f"Lỗi - Selector {selectors[i]} phải có ít nhất 2 phần tử (pt1,pt2)).")
+                        f"Selector {selectors[i]} phải có ít nhất 2 phần tử (pt1,pt2)).")
                     return None
                 try:
                     shadow_root = self._driver.execute_script(
@@ -495,11 +533,11 @@ class Node:
                         WebElement, shadow_root.find_element(*selectors[i]))
 
                 except NoSuchElementException:
-                    self.log(f"Lỗi - Không tìm thấy phần tử: {selectors[i]}")
+                    self.log(f"Không tìm thấy phần tử: {selectors[i]}")
                     return None
                 except Exception as e:
                     self.log(
-                        f'Lỗi - không xác định khi tìm phần tử {selectors[1]} {e}')
+                        f'không xác định khi tìm phần tử {selectors[1]} {e}')
                     return None
 
             self.log(f'Tìm thấy phần tử {selectors[-1]}')
@@ -507,13 +545,13 @@ class Node:
 
         except TimeoutException:
             self.log(
-                f'Lỗi - Không tìm thấy phần tử {selectors[0]} trong {timeout}s')
+                f'Không tìm thấy phần tử {selectors[0]} trong {timeout}s')
         except StaleElementReferenceException:
             self.log(
-                f'Lỗi - Phần tử {selectors[0]} đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
+                f'Phần tử {selectors[0]} đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
         except Exception as e:
             self.log(
-                f'Lỗi - không xác định khi tìm phần tử {selectors[0]} {e}')
+                f'không xác định khi tìm phần tử {selectors[0]} {e}')
 
         return None
 
@@ -527,7 +565,7 @@ class Node:
             parent_element (WebElement, optional): Nếu có, tìm trong phần tử này.
             wait (float, optional): Thời gian chờ trước khi tìm.
             timeout (float, optional): Thời gian chờ tối đa để tìm phần tử.
-            show_log (bool, optional): Có hiển thị log hay không.
+            show_log (bool, optional): Có hiển thị log ra console hay không. Mặc định: True (cho phép).
 
         Returns:
             list[WebElement]: Danh sách phần tử chứa đoạn text.
@@ -537,12 +575,24 @@ class Node:
         Utility.wait_time(wait)
 
         # XPath để tìm phần tử chứa đoạn text
-        value = f'.//*[contains(normalize-space(.), "{text}")]' if parent_element else f'//*[contains(normalize-space(.), "{text}")]'
+        if parent_element:
+            prefix = ".//"
+        else:
+            prefix = "//"
+
+        xpath = (
+            f"{prefix}*[contains("
+            "translate(normalize-space(.), "
+            "'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯÀÁẢÃẠẮẰẲẴẶẤẦẨẪẬÉÈẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰÝỲỶỸỴ', "
+            "'abcdefghijklmnopqrstuvwxyzàáâãèéêìíòóôõùúăđĩũơưàáảãạắằẳẵặấầẩẫậéèẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựýỳỷỹỵ'"
+            "), "
+            f"'{text.lower()}')]"
+        )
 
         try:
             search_context = parent_element if parent_element else self._driver
             elements = WebDriverWait(search_context, timeout).until(
-                EC.presence_of_all_elements_located((By.XPATH, value))
+                EC.presence_of_all_elements_located((By.XPATH, xpath))
             )
             self.log(message=f'🔍 Tìm thấy {len(elements)} phần tử chứa "{text}"', show_log=show_log)
             return elements
@@ -558,13 +608,13 @@ class Node:
 
     def has_texts(self, texts: str | list[str] | set[str], wait: float | None = None, show_log: bool = True) -> list[str]:
         """
-        Kiểm tra nhanh các đoạn text có tồn tại trên trang.
+        Kiểm tra nhanh các đoạn text có tồn tại trên trang (không phân biệt Hoa/thường).
         Không chờ load, chỉ query DOM tức thì. 
         
         Args: 
             texts (str | list[str] | set[str]): nội dung cần tìm.
             wait (float, optional): Thời gian chờ trước khi kiểm tra (giây).
-            show_log (bool, optional): Có hiển thị log hay không. 
+            show_log (bool, optional): Có hiển thị log ra console hay không. Mặc định: True (cho phép).
         
         Returns: 
             list[str]: Danh sách nội dung thực sự tồn tại trên trang.
@@ -578,9 +628,16 @@ class Node:
 
         found = []
         for text in texts:
-            value = f'//*[contains(normalize-space(.), "{text}")]'
-            elements = self._driver.find_elements(By.XPATH, value)
-            if elements:
+            xpath = (
+                "//*[contains("
+                "translate(normalize-space(.), "
+                "'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯÀÁẢÃẠẮẰẲẴẶẤẦẨẪẬÉÈẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰÝỲỶỸỴ', "
+                "'abcdefghijklmnopqrstuvwxyzàáâãèéêìíòóôõùúăđĩũơưàáảãạắằẳẵặấầẩẫậéèẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựýỳỷỹỵ'"
+                "), "
+                f"'{text.lower()}')]"
+            )
+
+            if self._driver.find_elements(By.XPATH, xpath):
                 found.append(text)
 
         if found:
@@ -619,13 +676,13 @@ class Node:
             return True
 
         except ElementClickInterceptedException:
-                self.log('❌ Lỗi - Element bị chặn hoặc bị che, không thể nhấp được.')
+                self.log('❌ Element bị chặn hoặc bị che, không thể nhấp được.')
 
         except ElementNotInteractableException:
-            self.log('❌ Lỗi - Element không tương tác được (ẩn hoặc bị disable).')
+            self.log('❌ Element không tương tác được (ẩn hoặc bị disable).')
 
         except StaleElementReferenceException:
-            self.log('❌ Lỗi - Element không còn tồn tại hoặc DOM đã thay đổi.')
+            self.log('❌ Element không còn tồn tại hoặc DOM đã thay đổi.')
 
         except WebDriverException as e:
             self.log(f'❌ WebDriver lỗi khi click phần tử: {str(e)}')
@@ -644,7 +701,7 @@ class Node:
             value (str): Giá trị tương ứng với phương thức tìm phần tử (ví dụ: tên ID, đường dẫn XPath, v.v.).
             parent_element (WebElement, optional): Nếu có, tìm phần tử con bên trong phần tử này.
             wait (float, optional): Thời gian chờ trước khi thực hiện thao tác nhấp. Mặc định sử dụng giá trị `self.wait = 3`.
-            timeout (float, optional): Thời gian tối đa để chờ phần tử có thể nhấp được. Mặc định sử dụng giá trị `self.timeout = 20`.
+            timeout (float, optional): Thời gian tối đa để chờ phần tử có thể nhấp được. Mặc định sử dụng giá trị `self.timeout = 30`.
 
         Returns:
             bool: 
@@ -675,16 +732,16 @@ class Node:
 
         except TimeoutException:
             self.log(
-                f'Lỗi - Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
+                f'Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
         except StaleElementReferenceException:
             self.log(
-                f'Lỗi - Phần tử ({by}, {value}) đã thay đổi hoặc không còn hợp lệ')
+                f'Phần tử ({by}, {value}) đã thay đổi hoặc không còn hợp lệ')
         except ElementClickInterceptedException:
             self.log(
-                f'Lỗi - Không thể nhấp vào phần tử phần tử ({by}, {value}) vì bị che khuất hoặc ngăn chặn')
+                f'Không thể nhấp vào phần tử phần tử ({by}, {value}) vì bị che khuất hoặc ngăn chặn')
         except ElementNotInteractableException:
             self.log(
-                f'Lỗi - Phần tử ({by}, {value}) không thể tương tác, có thể bị vô hiệu hóa hoặc ẩn')
+                f'Phần tử ({by}, {value}) không thể tương tác, có thể bị vô hiệu hóa hoặc ẩn')
         except Exception as e:
             # Thử phương pháp click khác khi bị lỗi từ Javascript
             if 'LavaMoat' in str(e):
@@ -699,11 +756,11 @@ class Node:
                 except ElementClickInterceptedException as e:
                     error_msg = e.msg.split("\n")[0] if e.msg else str(e)
                     self.log(
-                        f'Lỗi - Không thể nhấp vào phần tử phần tử ({by}, {value}) vì bị che khuất hoặc ngăn chặn: {error_msg}')
+                        f'Không thể nhấp vào phần tử phần tử ({by}, {value}) vì bị che khuất hoặc ngăn chặn: {error_msg}')
                 except Exception as e:
-                    self.log(f'Lỗi - Không xác định ({by}, {value}) (PT2) {e}')
+                    self.log(f'Không xác định ({by}, {value}) (PT2) {e}')
             else:
-                self.log(f'Lỗi - Không xác định ({by}, {value}) {e}')
+                self.log(f'Không xác định ({by}, {value}) {e}')
 
         return False
 
@@ -718,7 +775,7 @@ class Node:
             parent_element (WebElement, optional): Nếu có, tìm phần tử con bên trong phần tử này.
             delay (float): Thời gian trễ giữa mỗi ký tự khi nhập văn bản. Mặc định là 0.2 giây.
             wait (float, optional): Thời gian chờ trước khi thực hiện thao tác nhấp. Mặc định sử dụng giá trị `self.wait = 3`.
-            timeout (float, optional): Thời gian tối đa để chờ phần tử có thể nhấp được. Mặc định sử dụng giá trị self.timeout = 20.
+            timeout (float, optional): Thời gian tối đa để chờ phần tử có thể nhấp được. Mặc định sử dụng giá trị self.timeout = 30.
 
         Returns:
             bool: 
@@ -754,13 +811,13 @@ class Node:
 
         except TimeoutException:
             self.log(
-                f'Lỗi - Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
+                f'Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
         except StaleElementReferenceException:
             self.log(
-                f'Lỗi - Phần tử ({by}, {value}) đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
+                f'Phần tử ({by}, {value}) đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
         except ElementNotVisibleException:
             self.log(
-                f'Lỗi - Phần tử ({by}, {value}) có trong DOM nhưng không nhìn thấy. ví dụ display: none hoặc visibility: hidden')
+                f'Phần tử ({by}, {value}) có trong DOM nhưng không nhìn thấy. ví dụ display: none hoặc visibility: hidden')
         except Exception as e:
             # Thử phương pháp click khác khi bị lỗi từ Javascript
             if 'LavaMoat' in str(e):
@@ -769,7 +826,6 @@ class Node:
                         EC.presence_of_element_located((by, value))
                     )
                     Utility.wait_time(wait)
-                    cmd_ctrl = Keys.COMMAND if sys.platform == 'darwin' else Keys.CONTROL
                     
                     for ch in text:
                         Utility.wait_time(delay)
@@ -777,10 +833,10 @@ class Node:
                     self.log(f'Nhập văn bản phần tử ({by}, {value}) thành công (PT2)')
                 
                 except Exception as e:
-                    self.log(f'Lỗi - không xác định ({by}, {value}) {e}')
+                    self.log(f'không xác định ({by}, {value}) {e}')
             
             else:
-                self.log(f'Lỗi - không xác định ({by}, {value}) {e}')
+                self.log(f'không xác định ({by}, {value}) {e}')
 
         return False
     def press_key(self, key: str, parent_element: WebElement|None = None, wait: float|None = None, timeout: float|None = None):
@@ -828,9 +884,9 @@ class Node:
             return True
             
         except AttributeError:
-            self.log(f'Lỗi - Phím {key} không hợp lệ')
+            self.log(f'Phím {key} không hợp lệ')
         except Exception as e:
-            self.log(f'Lỗi - Không thể nhấn phím {key}: {e}')
+            self.log(f'Không thể nhấn phím {key}: {e}')
         
         return False
 
@@ -843,7 +899,7 @@ class Node:
             value (str): Giá trị tương ứng với phương thức tìm phần tử (ví dụ: ID, đường dẫn XPath, v.v.).
             parent_element (WebElement, optional): Nếu có, tìm phần tử con bên trong phần tử này.
             wait (float, optional): Thời gian chờ trước khi thực hiện thao tác lấy văn bản, mặc định sử dụng giá trị `self.wait = 3`.
-            timeout (float, optional): Thời gian tối đa để chờ phần tử hiển thị, mặc định sử dụng giá trị `self.timeout = 20`.
+            timeout (float, optional): Thời gian tối đa để chờ phần tử hiển thị, mặc định sử dụng giá trị `self.timeout = 30`.
 
         Returns:
             str: Văn bản của phần tử nếu lấy thành công.
@@ -872,17 +928,17 @@ class Node:
                     f'Tìm thấy văn bản "{text}" trong phần tử ({by}, {value})')
                 return text
             else:
-                self.log(f'Lỗi - Phần tử ({by}, {value}) không chứa văn bản')
+                self.log(f'Phần tử ({by}, {value}) không chứa văn bản')
 
         except TimeoutException:
             self.log(
-                f'Lỗi - Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
+                f'Không tìm thấy phần tử ({by}, {value}) trong {timeout}s')
         except StaleElementReferenceException:
             self.log(
-                f'Lỗi - Phần tử ({by}, {value}) đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
+                f'Phần tử ({by}, {value}) đã bị thay đổi hoặc bị loại bỏ khỏi DOM')
         except Exception as e:
             self.log(
-                f'Lỗi - Không xác định khi tìm văn bản trong phần tử ({by}, {value})')
+                f'Không xác định khi tìm văn bản trong phần tử ({by}, {value})')
 
         return None
 
@@ -895,7 +951,7 @@ class Node:
             type (str, optional): 'title' hoặc 'url' để xác định cách tìm kiếm tab. Mặc định là 'url'
             wait (float, optional): Thời gian chờ trước khi thực hiện hành động.
             timeout (float, optional): Tổng thời gian tối đa để tìm kiếm.
-            show_log (bool, optional): Hiển thị nhật ký ra bênngoài. Mặc định là True
+            show_log (bool, optional): Có hiển thị log ra console hay không. Mặc định: True (cho phép).
 
         Returns:
             bool: True nếu tìm thấy và chuyển đổi thành công, False nếu không.
@@ -906,7 +962,7 @@ class Node:
         found = False
 
         if type not in types:
-            self.log('Lỗi - Tìm không thành công. {type} phải thuộc {types}')
+            self.log('Tìm không thành công. {type} phải thuộc {types}')
             return found
         Utility.wait_time(wait)
         try:
@@ -945,7 +1001,7 @@ class Node:
             # Không tìm thấy → Quay lại tab cũ
             self._driver.switch_to.window(current_handle)
             self.log(
-                message=f'Lỗi - Không tìm thấy tab có [{type}: {value}] sau {timeout}s.',
+                message=f'Không tìm thấy tab có [{type}: {value}] sau {timeout}s.',
                 show_log=show_log
             )
         except NoSuchWindowException as e:
@@ -954,7 +1010,7 @@ class Node:
                 show_log=show_log
             )
         except Exception as e:
-            self.log(message=f'Lỗi - Không xác định: {e}', show_log=show_log)
+            self.log(message=f'Không xác định: {e}', show_log=show_log)
 
         return found
 
@@ -1059,7 +1115,7 @@ class Node:
         except NoSuchWindowException:
             self.log(f'Không thể cuộn. Cửa sổ đã đóng')
         except Exception as e:
-            self.log(f'❌ Lỗi - không xác định khi cuộn: {e}')
+            self.log(f'❌ không xác định khi cuộn: {e}')
             
         return False
 

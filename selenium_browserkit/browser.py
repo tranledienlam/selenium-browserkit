@@ -33,7 +33,7 @@ class BrowserManager:                                                           
         '''
         Khởi tạo đối tượng BrowserManager để quản lý và tự động hóa trình duyệt.
 
-        Tham số:
+        Args:
         - auto_handler (callable, optional): Logic chính để chạy profile.
             - Có thể truyền vào class (sẽ được khởi tạo với `node, profile`).
             - Hoặc truyền vào function (sẽ được gọi trực tiếp với `node, profile`).
