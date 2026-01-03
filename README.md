@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.1.2-orange.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-1.1.3-orange.svg)](pyproject.toml)
 
 **Selenium BrowserKit** là một bộ công cụ tự động hóa mạnh mẽ với Selenium, được thiết kế để quản lý nhiều profile trình duyệt, chạy song song, và tích hợp các tính năng AI và Telegram. Phù hợp cho việc xây dựng bot, tool automation, hoặc quản lý nhiều tài khoản cùng lúc.
 
@@ -26,7 +26,7 @@
 
 ### Cài đặt từ PyPI
 ```bash
-pip install selenium-browserkit==1.1.2
+pip install selenium-browserkit==1.1.3
 ```
 
 ### Cài đặt từ source
@@ -345,40 +345,23 @@ def auto(node: Node, profile: dict):
    - Kiểm tra API key trong config.txt
    - Kiểm tra format cấu hình TELE_BOT và AI_BOT
 
-## 🆕 Update v1.1.2
+## 🆕 Update v1.1.3
 
-### ⚙️ Cải tiến mới
+### Tối ưu chiến lược load trang (Page Load Strategy)
 
-- **Chuẩn hóa lại mô tả các Node**
-  - Giúp dễ đọc, dễ hiểu và thống nhất cách sử dụng các node trong workflow.
-
-- **Node `has_texts` và `finds_by_text`**
-  - Chỉnh lại XPath tìm kiếm, cho phép tìm tất cả phần tử chứa text bất kể thẻ nào (div, span, p,…), không phân biệt hoa thường:
-    ```python
-    xpath = (
-            "//*[contains("
-            "translate(normalize-space(.), "
-            "'ABCDEFGHIJKLMNOPQRSTUVWXYZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯÀÁẢÃẠẮẰẲẴẶẤẦẨẪẬÉÈẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰÝỲỶỸỴ', "
-            "'abcdefghijklmnopqrstuvwxyzàáâãèéêìíòóôõùúăđĩũơưàáảãạắằẳẵặấầẩẫậéèẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựýỳỷỹỵ'"
-            "), "
-            f"'{text.lower()}')]"
-        )
+- Thêm cấu hình cho Chrome:
+    ```
+    chrome_options.page_load_strategy = 'eager'
     ```
 
-- **Node `get_url`**
-  - Thêm `try-except` để tránh lỗi khi không lấy được URL hiện tại:
+- Giúp Selenium bắt đầu thao tác ngay sau khi DOM được tải (`DOMContentLoaded`),
+không cần chờ toàn bộ tài nguyên (ảnh, iframe, video…) → tăng tốc độ chạy tool.
 
-- **Thêm Node `wait_for_page_load`**
-  - Chờ trang load hoàn toàn trước khi thực hiện hành động tiếp theo:
-    ```python
-    WebDriverWait(self._driver, timeout).until(
-        lambda driver: driver.execute_script("return document.readyState") == 'complete'
-    )
-    ```
+- Phù hợp cho automation, bot, VPS, môi trường không cần render đầy đủ giao diện.
+
 ---
 
-📦 **Phiên bản:** `1.1.2`
-
+📦 **Phiên bản:** `1.1.3`
 
 ## 📄 License
 
@@ -414,7 +397,8 @@ Mọi đóng góp đều được chào đón! Vui lòng:
 - **SUI:** `0x5fb56584bf561a4a0889e35a96ef3e6595c7ebd13294be436ad61eaf04be4b09`
 - **APT (APTOS):** `0x557ea46189398da1ddf817a634fa91cfb54a32cfc22cadd98bb0327c880bac19`
 
-🙏 Khi ủng hộ, nếu không thấy phiền, Bạn có thể gửi token chính của mạng. Cám ơn Bạn đã hỗ trợ!
+☕ Nếu bạn thấy dự án hữu ích, hãy mời mình một ly cà phê bằng token gốc của mạng nhé.
+Cảm ơn bạn rất nhiều!
 
 ---
 **Made with ❤️ by Tran Lam**

@@ -208,7 +208,7 @@ class BrowserManager:                                                           
 
         manifest_json = """
         {
-            "version": "1.1.1",
+            "version": "1.1.3",
             "manifest_version": 2,
             "name": "Proxies",
             "permissions": [
@@ -299,6 +299,8 @@ class BrowserManager:                                                           
         chrome_options = ChromeOptions()
         if self._path_chromium:
             chrome_options.binary_location = str(self._path_chromium)
+        chrome_options.page_load_strategy = 'eager'
+        
         chrome_options.add_argument(
             f'--user-data-dir={self._user_data_dir}/{profile_name}')
         chrome_options.add_argument(f'--profile-directory={profile_name}') # tắt để sử dụng profile default trong profile_name
